@@ -10,8 +10,8 @@
 #include <ctime>
 #include <filesystem>
 
-std::vector<std::vector<std::vector<float>>> FeatureConv2D(const std::vector<std::vector<std::vector<float>>> &input,
-                                                    const std::vector<std::vector<std::vector<std::vector<float>>>> &kernel,
+std::vector<std::vector<std::vector<int8_t>>> FeatureConv2D(const std::vector<std::vector<std::vector<int8_t>>> &input,
+                                                    const std::vector<std::vector<std::vector<std::vector<int8_t>>>> &kernel,
                                                     int stride, int padding)
 {   
 
@@ -25,7 +25,7 @@ std::vector<std::vector<std::vector<float>>> FeatureConv2D(const std::vector<std
 
     int output_height = (input_height - kernel_height + 2 * padding) / stride + 1;
     int output_width = (input_width - kernel_width + 2 * padding) / stride + 1;
-    std::vector<std::vector<std::vector<float>>> output(kernel_channels, std::vector<std::vector<float>>(output_height, std::vector<float>(output_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> output(kernel_channels, std::vector<std::vector<int8_t>>(output_height, std::vector<int8_t>(output_width, 0)));
 
     int number = 0;
     for (int ch = 0; ch < kernel_channels; ch++)
@@ -59,8 +59,8 @@ std::vector<std::vector<std::vector<float>>> FeatureConv2D(const std::vector<std
 }
 
 
-std::vector<std::vector<std::vector<float>>> DepthwiseConv2D(const std::vector<std::vector<std::vector<float>>> &input,
-                                                    const std::vector<std::vector<std::vector<float>>> &kernel,
+std::vector<std::vector<std::vector<int8_t>>> DepthwiseConv2D(const std::vector<std::vector<std::vector<float>>> &input,
+                                                    const std::vector<std::vector<std::vector<int8_t>>> &kernel,
                                                     int stride, int padding)
 {
     int input_channels = input.size();
@@ -72,7 +72,7 @@ std::vector<std::vector<std::vector<float>>> DepthwiseConv2D(const std::vector<s
 
     int output_height = (input_height - kernel_height + 2 * padding) / stride + 1;
     int output_width = (input_width - kernel_width + 2 * padding) / stride + 1;
-    std::vector<std::vector<std::vector<float>>> output(kernel_channels, std::vector<std::vector<float>>(output_height, std::vector<float>(output_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> output(kernel_channels, std::vector<std::vector<int8_t>>(output_height, std::vector<int8_t>(output_width, 0)));
     int number;
     for (int ch = 0; ch < kernel_channels; ch++)
     {
@@ -102,8 +102,9 @@ std::vector<std::vector<std::vector<float>>> DepthwiseConv2D(const std::vector<s
     return output;
 }
 
-std::vector<std::vector<std::vector<float>>> PointwiseConv2D(const std::vector<std::vector<std::vector<float>>> &input,
-                                                    const std::vector<std::vector<std::vector<std::vector<float>>>> &kernel)
+
+std::vector<std::vector<std::vector<int8_t>>> PointwiseConv2D(const std::vector<std::vector<std::vector<float>>> &input,
+                                                    const std::vector<std::vector<std::vector<std::vector<int8_t>>>> &kernel)
 {   
     int input_channels = input.size();
     int input_height = input[0].size();
@@ -115,7 +116,7 @@ std::vector<std::vector<std::vector<float>>> PointwiseConv2D(const std::vector<s
 
     int output_height = input_height;
     int output_width = input_width;
-    std::vector<std::vector<std::vector<float>>> output(kernel_channels, std::vector<std::vector<float>>(output_height, std::vector<float>(output_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> output(kernel_channels, std::vector<std::vector<int8_t>>(output_height, std::vector<int8_t>(output_width, 0)));
 
     int number = 0;
     for (int ch = 0; ch < kernel_channels; ch++)
@@ -136,11 +137,12 @@ std::vector<std::vector<std::vector<float>>> PointwiseConv2D(const std::vector<s
 
     return output;
 }
-std::vector<std::vector<std::vector<float>>> BatchNorm2D(const std::vector<std::vector<std::vector<float>>> &input,
-                                                         const std::vector<float> &weight,
-                                                         const std::vector<float> &bias,
-                                                         const std::vector<float> &mean,
-                                                         const std::vector<float> &variance,
+
+std::vector<std::vector<std::vector<float>>> BatchNorm2D(const std::vector<std::vector<std::vector<int8_t>>> &input,
+                                                         const std::vector<int8_t> &weight,
+                                                         const std::vector<int8_t> &bias,
+                                                         const std::vector<int8_t> &mean,
+                                                         const std::vector<int8_t> &variance,
                                                          float eps = 1e-05)
 {
     int num_channel = input.size();
@@ -225,6 +227,7 @@ std::string GenerateFileName(int n, int x, int y, const std::string &param)
     }
 }
 
+
 // Inverted Residual 블록  (2) ~ (17) 해당
 std::vector<std::vector<std::vector<float>>> InvertedResidual(const std::vector<std::vector<std::vector<float>>> &input,
                                                               int expansion_factor,
@@ -235,62 +238,62 @@ std::vector<std::vector<std::vector<float>>> InvertedResidual(const std::vector<
 {
     double total_duration;
 
-
+    
     feature_num++; // 파일명 맞추기 위함
     int input_channels = input.size();
     int input_height = input[0].size();
     int input_width = input[0][0].size();
 
     // Expansion 단계 (pointwise 컨볼루션) (0)
-    std::vector<std::vector<std::vector<float>>> expanded(input_channels * expansion_factor, std::vector<std::vector<float>>(input_height, std::vector<float>(input_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> expanded(input_channels * expansion_factor, std::vector<std::vector<int8_t>>(input_height, std::vector<int8_t>(input_width, 0)));
     std::string weight_file_0_0 = GenerateFileName(feature_num, 0, 0, "weight.csv");
-    std::vector<std::vector<std::vector<std::vector<float>>>> expansion_kernel = LoadFeaKernelFromCSV(weight_file_0_0, input_channels, 1);
-
+    std::vector<std::vector<std::vector<std::vector<int8_t>>>> expansion_kernel = LoadFeaKernelFromCSV(weight_file_0_0, input_channels, 1);
     auto start_time = std::chrono::high_resolution_clock::now();
     expanded =PointwiseConv2D(input, expansion_kernel);///////////////////////////
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     total_duration += duration;
-
     std::string weight_0_1 = GenerateFileName(feature_num, 0, 1, "weight.csv");
     std::string bias_0_1 = GenerateFileName(feature_num, 0, 1, "bias.csv");
     std::string running_mean_0_1 = GenerateFileName(feature_num, 0, 1, "running_mean.csv");
     std::string running_var_0_1 = GenerateFileName(feature_num, 0, 1, "running_var.csv");
 
-    std::vector<float> batchnorm2d_weight_0_1 = LoadFromCSV1D(weight_0_1);
-    std::vector<float> batchnorm2d_bias_0_1 = LoadFromCSV1D(bias_0_1);
-    std::vector<float> batchnorm2d_running_mean_0_1 = LoadFromCSV1D(running_mean_0_1);
-    std::vector<float> batchnorm2d_running_var_0_1 = LoadFromCSV1D(running_var_0_1);
+    std::vector<int8_t> batchnorm2d_weight_0_1 = LoadFromCSV1D(weight_0_1);
+    std::vector<int8_t> batchnorm2d_bias_0_1 = LoadFromCSV1D(bias_0_1);
+    std::vector<int8_t> batchnorm2d_running_mean_0_1 = LoadFromCSV1D(running_mean_0_1);
+    std::vector<int8_t> batchnorm2d_running_var_0_1 = LoadFromCSV1D(running_var_0_1);
+
 
     auto start_time1 = std::chrono::high_resolution_clock::now();
+
     std::vector<std::vector<std::vector<float>>> expanded_norm = BatchNorm2D(expanded, batchnorm2d_weight_0_1, batchnorm2d_bias_0_1, batchnorm2d_running_mean_0_1, batchnorm2d_running_var_0_1);
+
     std::vector<std::vector<std::vector<float>>> expanded_out = ReLU6(expanded_norm);
+
     auto end_time1 = std::chrono::high_resolution_clock::now();
     auto duration1 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time1 - start_time1).count();
     total_duration += duration1;
-
     // std::cout << "\t InvertedResidual_0_size :" << expanded_out.size() << std::endl;
 
     // Depthwise 컨볼루션           (1)
-    std::vector<std::vector<std::vector<float>>> depthwise(input_channels * expansion_factor, std::vector<std::vector<float>>(input_height, std::vector<float>(input_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> depthwise(input_channels * expansion_factor, std::vector<std::vector<int8_t>>(input_height, std::vector<int8_t>(input_width, 0)));
     std::string weight_file_1_0 = GenerateFileName(feature_num, 1, 0, "weight.csv");
-    std::vector<std::vector<std::vector<float>>> depthwise_kernel = LoadKernelFromCSV(weight_file_1_0,expanded_out.size(), 3);
-
+    std::vector<std::vector<std::vector<int8_t>>> depthwise_kernel = LoadKernelFromCSV(weight_file_1_0,expanded_out.size(), 3);
     auto start_time2 = std::chrono::high_resolution_clock::now();
+
     depthwise = DepthwiseConv2D(expanded_out, depthwise_kernel, stride, padding);///////////////////////////////
     auto end_time2 = std::chrono::high_resolution_clock::now();
     auto duration2 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time2 - start_time2).count();
     total_duration += duration2;
 
-
     std::string weight_1_1 = GenerateFileName(feature_num, 1, 1, "weight.csv");
     std::string bias_1_1 = GenerateFileName(feature_num, 1, 1, "bias.csv");
     std::string running_mean_1_1 = GenerateFileName(feature_num, 1, 1, "running_mean.csv");
     std::string running_var_1_1 = GenerateFileName(feature_num, 1, 1, "running_var.csv");
-    std::vector<float> batchnorm2d_weight_1_1 = LoadFromCSV1D(weight_1_1);
-    std::vector<float> batchnorm2d_bias_1_1 = LoadFromCSV1D(bias_1_1);
-    std::vector<float> batchnorm2d_running_mean_1_1 = LoadFromCSV1D(running_mean_1_1);
-    std::vector<float> batchnorm2d_running_var_1_1 = LoadFromCSV1D(running_var_1_1);
+    std::vector<int8_t> batchnorm2d_weight_1_1 = LoadFromCSV1D(weight_1_1);
+    std::vector<int8_t> batchnorm2d_bias_1_1 = LoadFromCSV1D(bias_1_1);
+    std::vector<int8_t> batchnorm2d_running_mean_1_1 = LoadFromCSV1D(running_mean_1_1);
+    std::vector<int8_t> batchnorm2d_running_var_1_1 = LoadFromCSV1D(running_var_1_1);
 
     auto start_time3 = std::chrono::high_resolution_clock::now();
     std::vector<std::vector<std::vector<float>>> depthwise_norm = BatchNorm2D(depthwise, batchnorm2d_weight_1_1, batchnorm2d_bias_1_1, batchnorm2d_running_mean_1_1, batchnorm2d_running_var_1_1);
@@ -298,13 +301,13 @@ std::vector<std::vector<std::vector<float>>> InvertedResidual(const std::vector<
     auto end_time3 = std::chrono::high_resolution_clock::now();
     auto duration3 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time3 - start_time3).count();
     total_duration += duration3;
-
     // std::cout << "\t InvertedResidual_1_size :" << depthwise_out.size() << std::endl;
 
     // Projection 단계 (Pointwise 컨볼루션)              (2)
-    std::vector<std::vector<std::vector<float>>> output(out_channels, std::vector<std::vector<float>>(input_height, std::vector<float>(input_width, 0)));
+    std::vector<std::vector<std::vector<int8_t>>> output(out_channels, std::vector<std::vector<int8_t>>(input_height, std::vector<int8_t>(input_width, 0)));
     std::string weight_file_2 = GenerateFileName(feature_num, 2, -1, "weight.csv");
-    std::vector<std::vector<std::vector<std::vector<float>>>> projection_kernel = LoadFeaKernelFromCSV(weight_file_2,depthwise_out.size(), 1);
+    std::vector<std::vector<std::vector<std::vector<int8_t>>>> projection_kernel = LoadFeaKernelFromCSV(weight_file_2,depthwise_out.size(), 1);
+
     auto start_time4 = std::chrono::high_resolution_clock::now();
     output = PointwiseConv2D(depthwise_out, projection_kernel);
     auto end_time4 = std::chrono::high_resolution_clock::now();
@@ -317,20 +320,21 @@ std::vector<std::vector<std::vector<float>>> InvertedResidual(const std::vector<
     std::string bias_3 = GenerateFileName(feature_num, 3, -1, "bias.csv");
     std::string running_mean_3 = GenerateFileName(feature_num, 3, -1, "running_mean.csv");
     std::string running_var_3 = GenerateFileName(feature_num, 3, -1, "running_var.csv");
-    std::vector<float> batchnorm2d_weight_3 = LoadFromCSV1D(weight_3);
-    std::vector<float> batchnorm2d_bias_3 = LoadFromCSV1D(bias_3);
-    std::vector<float> batchnorm2d_running_mean_3 = LoadFromCSV1D(running_mean_3);
-    std::vector<float> batchnorm2d_running_var_3 = LoadFromCSV1D(running_var_3);
-
+    std::vector<int8_t> batchnorm2d_weight_3 = LoadFromCSV1D(weight_3);
+    std::vector<int8_t> batchnorm2d_bias_3 = LoadFromCSV1D(bias_3);
+    std::vector<int8_t> batchnorm2d_running_mean_3 = LoadFromCSV1D(running_mean_3);
+    std::vector<int8_t> batchnorm2d_running_var_3 = LoadFromCSV1D(running_var_3);
     auto start_time5 = std::chrono::high_resolution_clock::now();
+
     std::vector<std::vector<std::vector<float>>> output_norm = BatchNorm2D(output, batchnorm2d_weight_3, batchnorm2d_bias_3, batchnorm2d_running_mean_3, batchnorm2d_running_var_3);
     auto end_time5 = std::chrono::high_resolution_clock::now();
     auto duration5 = std::chrono::duration_cast<std::chrono::milliseconds>(end_time5 - start_time5).count();
     total_duration += duration5;
-    
+
     std::cout << total_duration <<std::endl;
     return output_norm;
 }
+
 
 std::vector<std::vector<std::vector<float>>> avgpool(const std::vector<std::vector<std::vector<float>>> &input)
 {
@@ -354,6 +358,8 @@ std::vector<std::vector<std::vector<float>>> avgpool(const std::vector<std::vect
 
     return result;
 }
+
+
 
 std::vector<float> Classifier(const std::vector<std::vector<std::vector<float>>> &input,
                               const std::vector<std::vector<std::vector<float>>> &weights,
@@ -389,6 +395,8 @@ int argmax(const std::vector<float> &arr)
 
     return max_index;
 }
+
+
 
 std::vector<std::vector<std::vector<float>>> connection(const std::vector<std::vector<std::vector<float>>> &input,
                                                       const std::vector<std::vector<std::vector<float>>> &output)
